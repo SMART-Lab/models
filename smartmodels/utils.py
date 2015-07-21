@@ -119,10 +119,3 @@ class FullyConnectedLayer:
 class OutputLayer(FullyConnectedLayer):
     def __init__(self, output_size, activation_function='linear', w_init=IsotropicGaussian(0.1), b_init=Constant(0)):
         super().__init__(output_size, activation_function, w_init, b_init)
-
-
-class LSTMLayer(FullyConnectedLayer):
-    def __init__(self, size, memory_size, activation_function='tanh',
-                 w_init=IsotropicGaussian(0.1), b_init=Constant(0)):
-        super().__init__(size, activation_function, w_init, b_init)
-        self.memory_size = memory_size
