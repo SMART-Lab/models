@@ -25,17 +25,8 @@ class FFNN(Model):
         self.use_dropout = sharedX(1.0 if dropout_rate > 0 else 0.0, name='use_dropout?')
         self.use_batch_normalization = use_batch_normalization
         self._trng = T.shared_randomstreams.RandomStream(seed)
-        last_layer_size = input_size
 
-        for k, layer in enumerate(hidden_layers):
-            self.tWs.append(sharedX(value=np.zeros((last_layer_size, layer.size)), name='W'+str(k), borrow=True))
-            self.tbs.append(sharedX(value=np.zeros((layer.size,)), name='b'+str(k), borrow=True))
-            self.act_fcts.append(layer.activation_function)
-            self.act_fcts_param += layer.parameters
-
-        self.tWs.append(sharedX(value=np.zeros((last_layer_size, output_size)), name='W.out', borrow=True))
-        self.tbs.append(sharedX(value=np.zeros((output_size,)), name='b.out', borrow=True))
-        self.act_fcts.append(output_act_fct)
+        self._build_layers(input_size, hidden_layers, output_size, output_act_fct)
 
     def initialize(self, w_initializer=None, b_initializer=None):
         if w_initializer is None:
@@ -65,20 +56,14 @@ class FFNN(Model):
         layer_number = 1
         for w, b, sigma in zip(self.tWs, self.tbs, self.act_fcts):
             if self.use_batch_normalization:
-                last_layer = self.batch_normalization(last_layer, str(layer_number))
+                last_layer = self._batch_normalization(last_layer, str(layer_number))
 
             last_layer = sigma(T.dot(w, last_layer) + b)
-            dpout_mask = ifelse(self.use_dropout,
-                                self._trng.binomial(last_layer.shape, 1-self.dropout_rate,
-                                                    n=1, dtype=last_layer.dtype) * last_layer,
-                                1-self.dropout_rate)
 
-            last_layer = ifelse(self.dropout_rate > 0,
-                                last_layer * dpout_mask,
-                                last_layer)
+            if not self.dropout_rate.get_value():
+                last_layer = self._dropout(last_layer)
 
             layer_number += 1
-
 
         return last_layer
 
@@ -92,7 +77,31 @@ class FFNN(Model):
     def load(self, path):
         pass
 
-    def batch_normalization(self, activation, name_prefix='', eps=1e-6):
+    def _build_layers(self, input_size, hidden_layers, output_size, output_act_fct):
+        last_layer_size = input_size
+
+        for k, layer in enumerate(hidden_layers):
+            self.tWs.append(sharedX(value=np.zeros((last_layer_size, layer.size)), name='W'+str(k), borrow=True))
+            self.tbs.append(sharedX(value=np.zeros((layer.size,)), name='b'+str(k), borrow=True))
+            self.act_fcts.append(layer.activation_function)
+            self.act_fcts_param += layer.parameters
+
+        self.tWs.append(sharedX(value=np.zeros((last_layer_size, output_size)), name='W.out', borrow=True))
+        self.tbs.append(sharedX(value=np.zeros((output_size,)), name='b.out', borrow=True))
+        self.act_fcts.append(output_act_fct)
+
+    def _dropout(self, layer):
+        dpout_mask = ifelse(self.use_dropout,
+                            self._trng.binomial(layer.shape, 1-self.dropout_rate,
+                                                n=1, dtype=layer.dtype) * layer,
+                            1-self.dropout_rate)
+
+        layer = ifelse(self.dropout_rate > 0,
+                       layer * dpout_mask,
+                       layer)
+        return layer
+
+    def _batch_normalization(self, activation, name_prefix='', eps=1e-6):
         gamma = sharedX(1, name=name_prefix + '_gamma')
         beta = sharedX(0, name=name_prefix + '_beta')
         self.batch_normalization_param += [gamma, beta]
