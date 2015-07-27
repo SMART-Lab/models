@@ -1,5 +1,6 @@
 import numpy as np
 import theano.tensor as T
+from theano.ifelse import ifelse
 
 from smartpy import Model
 from smartpy.misc.utils import sharedX
@@ -7,11 +8,21 @@ from .utils import WeightsInitializer
 
 
 class FFNN(Model):
-    def __init__(self, input_size, output_size, hidden_layers, output_act_fct=lambda x: x):
+    def __init__(self,
+                 input_size,
+                 output_size,
+                 hidden_layers,
+                 output_act_fct=lambda x: x,
+                 dropout_rate=0.0,
+                 seed=1234):
         self.tWs = []
         self.tbs = []
         self.act_fcts = []
         self.act_fcts_param = []
+        self.batch_normalization_param = []
+        self.dropout_rate = sharedX(dropout_rate, name='dropout_rate')
+        self.use_dropout = sharedX(1.0 if dropout_rate > 0 else 0.0, name='use_dropout?')
+        self._trng = T.shared_randomstreams.RandomStream(seed)
         last_layer_size = input_size
 
         for k, layer in enumerate(hidden_layers):
@@ -37,12 +48,31 @@ class FFNN(Model):
 
     @property
     def parameters(self):
-        return self.tWs + self.tbs + self.act_fcts_param
+        return self.tWs + self.tbs + self.act_fcts_param + self.batch_normalization_param
+
+    def toggle_dropout(self):
+        new_value = 0.0 if self.use_dropout.get_value() else 1.0
+        self.use_dropout.set_value(new_value)
+        return bool(new_value)
+
+    def use_dropout(self, use_dropout):
+        self.use_dropout.set_value(1.0 if use_dropout else 0.0)
 
     def get_model_output(self, X):
         last_layer = X
         for w, b, sigma in zip(self.tWs, self.tbs, self.act_fcts):
-            last_layer = sigma(T.dot(w, last_layer) + b)
+            activation = T.dot(w, last_layer) + b
+
+            last_layer = sigma(activation)
+            dpout_mask = ifelse(self.use_dropout,
+                                self._trng.binomial(last_layer.shape, 1-self.dropout_rate,
+                                                    n=1, dtype=last_layer.dtype) * last_layer,
+                                1-self.dropout_rate)
+
+            last_layer = ifelse(self.dropout_rate > 0,
+                                last_layer * dpout_mask,
+                                last_layer)
+
         return last_layer
 
     def use(self, X):
@@ -54,3 +84,14 @@ class FFNN(Model):
 
     def load(self, path):
         pass
+
+    def batch_normalization(self, activation, name_prefix='', eps=1e-6):
+        gamma = sharedX(1, name=name_prefix + '_gamma')
+        beta = sharedX(0, name=name_prefix + '_beta')
+        self.batch_normalization_param += [gamma, beta]
+
+        mu = T.sum(activation)/activation.shape[0]
+        sig2 = T.sum(T.sqr(activation - mu))/activation.shape[0]
+        x_hat = (activation - mu)/T.sqrt(eps + sig2)
+
+        return gamma * x_hat + beta
