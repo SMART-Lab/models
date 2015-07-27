@@ -14,6 +14,7 @@ class FFNN(Model):
                  hidden_layers,
                  output_act_fct=lambda x: x,
                  dropout_rate=0.0,
+                 use_batch_normalization=False,
                  seed=1234):
         self.tWs = []
         self.tbs = []
@@ -22,6 +23,7 @@ class FFNN(Model):
         self.batch_normalization_param = []
         self.dropout_rate = sharedX(dropout_rate, name='dropout_rate')
         self.use_dropout = sharedX(1.0 if dropout_rate > 0 else 0.0, name='use_dropout?')
+        self.use_batch_normalization = use_batch_normalization
         self._trng = T.shared_randomstreams.RandomStream(seed)
         last_layer_size = input_size
 
@@ -60,10 +62,12 @@ class FFNN(Model):
 
     def get_model_output(self, X):
         last_layer = X
+        layer_number = 1
         for w, b, sigma in zip(self.tWs, self.tbs, self.act_fcts):
-            activation = T.dot(w, last_layer) + b
+            if self.use_batch_normalization:
+                last_layer = self.batch_normalization(last_layer, str(layer_number))
 
-            last_layer = sigma(activation)
+            last_layer = sigma(T.dot(w, last_layer) + b)
             dpout_mask = ifelse(self.use_dropout,
                                 self._trng.binomial(last_layer.shape, 1-self.dropout_rate,
                                                     n=1, dtype=last_layer.dtype) * last_layer,
@@ -72,6 +76,9 @@ class FFNN(Model):
             last_layer = ifelse(self.dropout_rate > 0,
                                 last_layer * dpout_mask,
                                 last_layer)
+
+            layer_number += 1
+
 
         return last_layer
 
