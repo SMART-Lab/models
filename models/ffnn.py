@@ -67,9 +67,12 @@ class FFNN(Model):
 
         return last_layer
 
-    def use(self, X):
+    def use_classification(self, X):
         probs = self.get_model_output(X)
         return T.argmax(probs, axis=1, keepdims=True)
+
+    def use_regression(self, X):
+        return self.get_model_output(X)
 
     def save(self, path):
         pass
