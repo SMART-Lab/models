@@ -56,7 +56,7 @@ class RNN(Model):
     def get_model_output(self, X):
         def step_fct_generator(act_fct):
             def step_fct(input, past_layer, W, V, b):
-                act_fct(T.dot(W, input) + T.dot(V, past_layer) + b)
+                return act_fct(T.dot(W, input) + T.dot(V, past_layer) + b)
             return step_fct
 
         last_layer = X
