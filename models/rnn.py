@@ -5,7 +5,7 @@ from theano.ifelse import ifelse
 
 from smartpy import Model
 from smartpy.misc.utils import sharedX
-from .utils import WeightsInitializer
+from .utils import WeightsInitializer as WI
 
 
 class RNN(Model):
@@ -27,22 +27,16 @@ class RNN(Model):
         self._build_layers(input_size, hidden_layers, output_size, output_act_fct)
 
     def initialize(self, w_initializer=None, b_initializer=None, v_initializer=None, h0_initializer=None):
-        if w_initializer is None:
-            w_initializer = WeightsInitializer().uniform
-        if b_initializer is None:
-            b_initializer = WeightsInitializer().zeros
-        if v_initializer is None:
-            v_initializer = WeightsInitializer().uniform
-        if h0_initializer is None:
-            h0_initializer = WeightsInitializer().zeros
+        w_initializer = WI.default(w_initializer, WI().uniform)
+        b_initializer = WI.default(b_initializer, WI().zeros)
+        v_initializer = WI.default(v_initializer, WI().uniform)
+        h0_initializer = WI.default(h0_initializer, WI().zeros)
 
-        for w in self.tWs:
+        for w, b in zip(self.tWs, self.tbs):
             w.set_value(w_initializer(w.get_value().shape))
-        for b in self.tbs:
             b.set_value(b_initializer(b.get_value().shape))
-        for v in self.tVs:
+        for v, h0 in zip(self.tVs, self.th0):
             v.set_value(v_initializer(v.get_value().shape))
-        for h0 in self.th0:
             h0.set_value(h0_initializer(h0.get_value().shape))
 
     @property
