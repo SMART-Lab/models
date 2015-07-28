@@ -2,6 +2,7 @@ import numpy as np
 import theano.tensor as T
 from theano import scan
 from theano.ifelse import ifelse
+from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 
 from smartpy import Model
 from smartpy.misc.utils import sharedX
@@ -22,7 +23,7 @@ class RNN(Model):
         self.dropout_rate = sharedX(dropout_rate, name='dropout_rate')
         self.use_dropout = sharedX(1.0 if dropout_rate > 0 else 0.0, name='use_dropout?')
         self.use_batch_normalization = use_batch_normalization
-        self._trng = T.shared_randomstreams.RandomStream(seed)
+        self._trng = RandomStreams(seed)
 
         self._build_layers(input_size, hidden_layers, output_size, output_act_fct)
 
@@ -98,6 +99,7 @@ class RNN(Model):
             self.tVs.append(sharedX(value=np.zeros((layer.size, layer.size)), name='V'+str(k), borrow=True))
             self.act_fcts.append(layer.activation_function)
             self.act_fcts_param += layer.parameters
+            last_layer_size = layer.size
 
         self.tWs.append(sharedX(value=np.zeros((last_layer_size, output_size)), name='W.out', borrow=True))
         self.tbs.append(sharedX(value=np.zeros((output_size,)), name='b.out', borrow=True))
