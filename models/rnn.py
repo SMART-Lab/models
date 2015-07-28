@@ -13,8 +13,8 @@ class RNN(Model):
                  use_batch_normalization=False, seed=1234):
         self.tWs = []
         self.tbs = []
-        self.tVs = [] # recurrent connections
-        self.th0 = []
+        self.tVs = []  # recurrent connections
+        self.th0 = []  # Initial hidden layers
         self.act_fcts = []
         self.act_fcts_param = []
         self.batch_normalization_param = []
