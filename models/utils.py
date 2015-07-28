@@ -146,3 +146,8 @@ class FullyConnectedLayer(object):
 
         return act_fct
 
+
+class LSTMLayer(FullyConnectedLayer):
+    def __init__(self, size, memory_size, activation_function='tanh'):
+        super().__init__(size, activation_function)
+        self.memory_size = memory_size
