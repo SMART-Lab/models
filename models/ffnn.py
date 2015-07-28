@@ -4,7 +4,7 @@ from theano.ifelse import ifelse
 
 from smartpy import Model
 from smartpy.misc.utils import sharedX
-from .utils import WeightsInitializer
+from .utils import WeightsInitializer as WI
 
 
 class FFNN(Model):
@@ -29,14 +29,11 @@ class FFNN(Model):
         self._build_layers(input_size, hidden_layers, output_size, output_act_fct)
 
     def initialize(self, w_initializer=None, b_initializer=None):
-        if w_initializer is None:
-            w_initializer = WeightsInitializer().uniform
-        if b_initializer is None:
-            b_initializer = WeightsInitializer().zeros
+        w_initializer = WI.default(w_initializer, WI().uniform)
+        b_initializer = WI.default(b_initializer, WI().zeros)
 
-        for w in self.tWs:
+        for w, b in zip(self.tWs, self.tbs):
             w.set_value(w_initializer(w.get_value().shape))
-        for b in self.tbs:
             b.set_value(b_initializer(b.get_value().shape))
 
     @property
