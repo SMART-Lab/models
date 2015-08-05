@@ -2,6 +2,7 @@ from math import sin, pi
 
 import numpy as np
 from numpy.random import RandomState
+import theano
 
 from smartpy.interfaces.dataset import Dataset
 
@@ -17,7 +18,7 @@ class Generator(object):
         self.rng = RandomState(seed)
         self.length = length
 
-    def generate_dataset(self, generate_target=True, **kwargs):
+    def generate_dataset(self, generate_target=True, starting_value=None, **kwargs):
         raise NotImplementedError("This method needs to be implemented in a specific subclass of Generator.")
 
 
@@ -48,14 +49,17 @@ class TimeSerieGenerator(Generator):
         beta0 = self.rng.normal(0, sigma_0)
         self._covariates.append([probability, beta0, sigma])
 
-    def generate_dataset(self, generate_target=True, **kwargs):
+    def generate_dataset(self, generate_target=True, starting_value=None, **kwargs):
         if generate_target:
             length = self.length + 1
         else:
             length = self.length
 
+        if starting_value is None:
+            starting_value = self.rng.lognormal(5, 2)
+
         inputs = np.zeros((length, len(self._covariates)+1))
-        inputs[0, 0] = self.rng.lognormal(5, 2)
+        inputs[0, 0] = starting_value
         inputs[:, 1:] = self._generate_covariates(length)
 
         for t in range(1, length):
@@ -72,8 +76,10 @@ class TimeSerieGenerator(Generator):
 
             inputs[t, 0] = inputs[t-1, 0] + delta
 
+        inputs = np.asarray(inputs, dtype=theano.config.floatX)
+
         if generate_target:
-            targets = inputs[1:, 0]
+            targets = np.expand_dims(inputs[1:, 0], 1)
             inputs = inputs[:-1]
         else:
             targets = None
