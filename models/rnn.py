@@ -27,12 +27,11 @@ class RNN(Model):
 
         self._build_layers(input_size, hidden_layers, output_size, output_act_fct)
 
-    def initialize(self, w_initializer=None, b_initializer=None, v_initializer=None, h0_initializer=None):
-        w_initializer = WI.default(w_initializer, WI().uniform)
-        b_initializer = WI.default(b_initializer, WI().zeros)
-        v_initializer = WI.default(v_initializer, WI().uniform)
-        h0_initializer = WI.default(h0_initializer, WI().zeros)
-
+    def initialize(self,
+                   w_initializer=WI().uniform,
+                   b_initializer=WI().zeros,
+                   v_initializer=WI().uniform,
+                   h0_initializer=WI().zeros):
         for w, b in zip(self.tWs, self.tbs):
             w.set_value(w_initializer(w.get_value().shape))
             b.set_value(b_initializer(b.get_value().shape))
@@ -56,25 +55,26 @@ class RNN(Model):
     def get_model_output(self, X):
         def step_fct_generator(act_fct):
             def step_fct(input, past_layer, W, V, b):
-                return act_fct(T.dot(W, input) + T.dot(V, past_layer) + b)
+                return act_fct(T.dot(input, W) + T.dot(past_layer, V) + b)
             return step_fct
 
-        last_layer = X
+        last_layer = X.dimshuffle(1, 0, 2)
         layer_number = 1
         updates = dict()
 
         for w, b, sigma, v, h0 in zip(self.tWs, self.tbs, self.act_fcts, self.tVs, self.th0):
-            last_layer, updt = scan(fn=step_fct_generator(sigma), outputs_info=[h0], sequences=[last_layer],
-                                    non_sequences=[w, b, v])
+            last_layer, updt = scan(fn=step_fct_generator(sigma),
+                                    outputs_info=[T.alloc(h0, last_layer.shape[1], h0.shape[0])],
+                                    sequences=[last_layer], non_sequences=[w, v, b])
             updates.update(updt)
 
-            if not self.dropout_rate.get_value():
+            if self.dropout_rate.get_value():
                 last_layer = self._dropout(last_layer)
 
             layer_number += 1
 
         # outputs aren't recurrent, needs to be done manually.
-        last_layer = self.act_fcts[-1](T.dot(self.tWs[-1], last_layer) + self.tbs[-1])  # check shapes matches
+        last_layer = self.act_fcts[-1](T.dot(last_layer, self.tWs[-1]) + self.tbs[-1]).dimshuffle(1, 0, 2)
 
         return last_layer, updates
 
@@ -94,9 +94,10 @@ class RNN(Model):
         last_layer_size = input_size
 
         for k, layer in enumerate(hidden_layers):
-            self.tWs.append(sharedX(value=np.zeros((last_layer_size, layer.size)), name='W'+str(k), borrow=True))
-            self.tbs.append(sharedX(value=np.zeros((layer.size,)), name='b'+str(k), borrow=True))
-            self.tVs.append(sharedX(value=np.zeros((layer.size, layer.size)), name='V'+str(k), borrow=True))
+            self.tWs.append(sharedX(value=np.zeros((last_layer_size, layer.size)), name='W_'+str(k), borrow=True))
+            self.tbs.append(sharedX(value=np.zeros((layer.size,)), name='b_'+str(k), borrow=True))
+            self.tVs.append(sharedX(value=np.zeros((layer.size, layer.size)), name='V_'+str(k), borrow=True))
+            self.th0.append(sharedX(value=np.zeros((layer.size,)), name='h0_'+str(k), borrow=True))
             self.act_fcts.append(layer.activation_function)
             self.act_fcts_param += layer.parameters
             last_layer_size = layer.size
@@ -107,9 +108,9 @@ class RNN(Model):
 
     def _dropout(self, layer):
         dpout_mask = ifelse(self.use_dropout,
-                            self._trng.binomial(layer.shape, 1-self.dropout_rate,
+                            self._trng.binomial(layer.shape, p=1-self.dropout_rate,
                                                 n=1, dtype=layer.dtype) * layer,
-                            1-self.dropout_rate)
+                            T.fill(layer, 1-self.dropout_rate))
 
         layer = ifelse(self.dropout_rate > 0,
                        layer * dpout_mask,
