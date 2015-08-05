@@ -24,7 +24,7 @@ class FFNN(Model):
         self.dropout_rate = sharedX(dropout_rate, name='dropout_rate')
         self.use_dropout = sharedX(1.0 if dropout_rate > 0 else 0.0, name='use_dropout?')
         self.use_batch_normalization = use_batch_normalization
-        self._trng = T.shared_randomstreams.RandomStream(seed)
+        self._trng = T.shared_randomstreams.RandomStreams(seed)
 
         self._build_layers(input_size, hidden_layers, output_size, output_act_fct)
 
@@ -55,7 +55,7 @@ class FFNN(Model):
             if self.use_batch_normalization:
                 last_layer = self._batch_normalization(last_layer, str(layer_number))
 
-            last_layer = sigma(T.dot(w, last_layer) + b)
+            last_layer = sigma(T.dot(last_layer, w) + b)
 
             if not self.dropout_rate.get_value():
                 last_layer = self._dropout(last_layer)
@@ -85,6 +85,7 @@ class FFNN(Model):
             self.tbs.append(sharedX(value=np.zeros((layer.size,)), name='b'+str(k), borrow=True))
             self.act_fcts.append(layer.activation_function)
             self.act_fcts_param += layer.parameters
+            last_layer_size = layer.size
 
         self.tWs.append(sharedX(value=np.zeros((last_layer_size, output_size)), name='W.out', borrow=True))
         self.tbs.append(sharedX(value=np.zeros((output_size,)), name='b.out', borrow=True))
@@ -92,9 +93,9 @@ class FFNN(Model):
 
     def _dropout(self, layer):
         dpout_mask = ifelse(self.use_dropout,
-                            self._trng.binomial(layer.shape, 1-self.dropout_rate,
+                            self._trng.binomial(layer.shape, p=1-self.dropout_rate,
                                                 n=1, dtype=layer.dtype) * layer,
-                            1-self.dropout_rate)
+                            T.fill(layer, 1-self.dropout_rate))
 
         layer = ifelse(self.dropout_rate > 0,
                        layer * dpout_mask,
