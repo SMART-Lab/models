@@ -59,7 +59,7 @@ class FFNN(Model):
 
             layer_number += 1
 
-        return last_layer
+        return last_layer, {}
 
     def use_classification(self, X):
         probs = self.get_model_output(X)
