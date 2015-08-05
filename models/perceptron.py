@@ -17,10 +17,7 @@ class Perceptron(Model):
         self.W = sharedX(value=np.zeros((input_size, output_size)), name='W', borrow=True)
         self.b = sharedX(value=np.zeros(output_size), name='b', borrow=True)
 
-    def initialize(self, weights_initializer=None):
-        if weights_initializer is None:
-            weights_initializer = WeightsInitializer().uniform
-
+    def initialize(self, weights_initializer=WeightsInitializer().uniform):
         self.W.set_value(weights_initializer(self.W.get_value().shape))
 
     @property
