@@ -28,10 +28,7 @@ class FFNN(Model):
 
         self._build_layers(input_size, hidden_layers, output_size, output_act_fct)
 
-    def initialize(self, w_initializer=None, b_initializer=None):
-        w_initializer = WI.default(w_initializer, WI().uniform)
-        b_initializer = WI.default(b_initializer, WI().zeros)
-
+    def initialize(self, w_initializer=WI().uniform, b_initializer=WI().zeros):
         for w, b in zip(self.tWs, self.tbs):
             w.set_value(w_initializer(w.get_value().shape))
             b.set_value(b_initializer(b.get_value().shape))
