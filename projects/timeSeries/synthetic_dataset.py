@@ -4,7 +4,7 @@ import numpy as np
 from numpy.random import RandomState
 import theano
 
-from smartpy.interfaces.dataset import Dataset
+from smartlearner.interfaces.dataset import Dataset
 
 
 class SyntheticDataset(Dataset):

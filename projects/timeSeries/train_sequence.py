@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import theano.tensor as T
 
-from models import ffnn#, rnn, lstm
-from timeSeries import synthetic_dataset as dset
-from models.utils import Timer, FullyConnectedLayer
-
-from smartpy import Trainer, tasks
-from smartpy.optimizers import SGD
-from smartpy.update_rules import ConstantLearningRate
-from smartpy.batch_scheduler import MiniBatchScheduler
-from smartpy.losses.reconstruction_losses import L2Distance
+from smartmodels import ffnn
+from projects.timeSeries import synthetic_dataset as dset
+from smartmodels.utils import Timer, FullyConnectedLayer
+from smartlearner import Trainer, tasks
+from smartlearner.optimizers import SGD
+from smartlearner.update_rules import ConstantLearningRate
+from smartlearner.batch_scheduler import MiniBatchScheduler
+from smartlearner.losses.reconstruction_losses import L2Distance
 
 
 def train_sequence_ffnn():

@@ -1,10 +1,10 @@
 import numpy as np
 import theano.tensor as T
 from theano.ifelse import ifelse
+from smartlearner import initializers as initer
 
-from smartpy import Model
-from smartpy.misc.utils import sharedX
-from .utils import WeightsInitializer as WI
+from smartlearner import Model
+from smartlearner.utils import sharedX
 
 
 class FFNN(Model):
@@ -28,10 +28,10 @@ class FFNN(Model):
 
         self._build_layers(input_size, hidden_layers, output_size, output_act_fct)
 
-    def initialize(self, w_initializer=WI().uniform, b_initializer=WI().zeros):
+    def initialize(self, w_initializer=initer.UniformInitializer(), b_initializer=initer.ZerosInitializer()):
         for w, b in zip(self.tWs, self.tbs):
-            w.set_value(w_initializer(w.get_value().shape))
-            b.set_value(b_initializer(b.get_value().shape))
+            w_initializer(w)
+            b_initializer(b)
 
     @property
     def parameters(self):
