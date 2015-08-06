@@ -21,6 +21,7 @@ def train_sequence_ffnn():
         synt_generator.add_season(3, 24, 0)
         synt_generator.add_season(4, 8760, 240)
         synt_generator.add_noise(0.1)
+        synt_generator.add_binary_covariate(0.1, 1, 1)
 
         trainset = chunking(dset.SyntheticDataset(synt_generator), 50)
 
@@ -30,7 +31,7 @@ def train_sequence_ffnn():
     with Timer("Creating model"):
         output_size = 1
         topology = [FullyConnectedLayer(100), FullyConnectedLayer(150)]
-        model = ffnn.FFNN(trainset.input_size, output_size, topology)
+        model = ffnn.FFNN(trainset.input_size, output_size, topology, dropout_rate=0.5, use_batch_normalization=True)
         model.initialize()  # By default, uniform initialization.
 
     with Timer("Building optimizer"):
@@ -68,7 +69,7 @@ def train_sequence_rnn():
 
     with Timer("Creating model"):
         topology = [FullyConnectedLayer(100), FullyConnectedLayer(150)]
-        model = rnn.RNN(trainset.input_size, trainset.target_size, topology)
+        model = rnn.RNN(trainset.input_size, trainset.target_size, topology, dropout_rate=0.5)
         model.initialize()  # By default, uniform initialization.
 
     with Timer("Building optimizer"):
@@ -106,7 +107,7 @@ def train_sequence_lstm():
 
     with Timer("Creating model"):
         topology = [FullyConnectedLayer(100), FullyConnectedLayer(150)]
-        model = lstm.LSTM(trainset.input_size, trainset.target_size, topology)
+        model = lstm.LSTM(trainset.input_size, trainset.target_size, topology, dropout_rate=0.5)
         model.initialize()  # By default, uniform initialization.
 
     with Timer("Building optimizer"):
