@@ -88,3 +88,42 @@ def load_mnist():
     testset = Dataset(data['testset_inputs'].astype(theano.config.floatX), data['testset_targets'].astype(theano.config.floatX))
 
     return trainset, validset, testset
+
+
+class FullyConnectedLayer(object):
+    def __init__(self, size, activation_function='tanh'):
+        self.size = size
+        self._parameters = []
+        self.activation_function = self._choose_act_fct(activation_function)
+
+    @property
+    def parameters(self):
+        return self._parameters
+
+    def _choose_act_fct(self, act_fct_str):
+        if act_fct_str == 'sigmoid':
+            act_fct = theano.tensor.nnet.sigmoid
+        elif act_fct_str == 'relu':
+            def relu(x):
+                return theano.tensor.maximum(x, 0.0)
+            act_fct = relu
+        elif act_fct_str == 'softplus':
+            act_fct = theano.tensor.nnet.softplus
+        elif act_fct_str == 'tanh':
+            act_fct = theano.tensor.tanh
+        elif act_fct_str == 'softsign':
+            act_fct = theano.sandbox.softsign.softsign
+        elif act_fct_str == 'brain':
+            def brain(x):
+                return theano.tensor.maximum(theano.tensor.log(theano.tensor.maximum(x + 1, 1)), 0.0)
+            act_fct = brain
+        else:
+            raise ValueError(act_fct_str + " is not a valid activation function name.")
+
+        return act_fct
+
+
+class LSTMLayer(FullyConnectedLayer):
+    def __init__(self, size, memory_size, activation_function='tanh'):
+        super().__init__(size, activation_function)
+        self.memory_size = memory_size
