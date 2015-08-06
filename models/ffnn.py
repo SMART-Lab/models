@@ -50,7 +50,7 @@ class FFNN(Model):
         layer_number = 1
         for w, b, sigma in zip(self.tWs, self.tbs, self.act_fcts):
             if self.use_batch_normalization:
-                last_layer = self._batch_normalization(last_layer, str(layer_number))
+                last_layer = self._batch_normalization(last_layer, w.get_value().shape[0], str(layer_number))
 
             last_layer = sigma(T.dot(last_layer, w) + b)
 
@@ -99,13 +99,13 @@ class FFNN(Model):
                        layer)
         return layer
 
-    def _batch_normalization(self, activation, name_prefix='', eps=1e-6):
-        gamma = sharedX(1, name=name_prefix + '_gamma')
-        beta = sharedX(0, name=name_prefix + '_beta')
+    def _batch_normalization(self, activation, activation_size, name_prefix='', eps=1e-6):
+        gamma = sharedX(np.ones((activation_size,)), name=name_prefix + '_gamma')
+        beta = sharedX(np.zeros((activation_size,)), name=name_prefix + '_beta')
         self.batch_normalization_param += [gamma, beta]
 
-        mu = T.sum(activation)/activation.shape[0]
-        sig2 = T.sum(T.sqr(activation - mu))/activation.shape[0]
+        mu = T.mean(activation, axis=0)
+        sig2 = T.mean(T.sqr(activation - mu), axis=0)
         x_hat = (activation - mu)/T.sqrt(eps + sig2)
 
         return gamma * x_hat + beta
