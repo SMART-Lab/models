@@ -5,7 +5,8 @@ import numpy as np
 from smartmodels import ffnn
 from projects.timeSeries import synthetic_dataset as dset
 from smartmodels.utils import Timer, FullyConnectedLayer
-from smartlearner import Trainer, tasks
+from smartlearner import Trainer
+from smartlearner.tasks import tasks, stopping_criteria
 from smartlearner.optimizers import SGD
 from smartlearner.update_rules import ConstantLearningRate
 from smartlearner.batch_scheduler import MiniBatchScheduler
@@ -14,7 +15,7 @@ from smartlearner.losses.reconstruction_losses import L2Distance
 
 def train_sequence_ffnn():
     with Timer("Loading dataset"):
-        synt_generator = dset.TimeSerieGenerator(1234, 8760*3)
+        synt_generator = dset.TimeSerieGenerator(1234, 8760)
         synt_generator.add_trend(3/8760)
         synt_generator.add_season(3, 24, 0)
         synt_generator.add_season(4, 8760, 240)
@@ -29,7 +30,7 @@ def train_sequence_ffnn():
     with Timer("Creating model"):
         output_size = 1
         topology = [FullyConnectedLayer(100), FullyConnectedLayer(150)]
-        model = ffnn.FFNN(trainset.input_size, output_size, topology, dropout_rate=0.5, use_batch_normalization=True)
+        model = ffnn.FFNN(trainset, output_size, topology, dropout_rate=0.5, use_batch_normalization=True)
         model.initialize()  # By default, uniform initialization.
 
     with Timer("Building optimizer"):
@@ -39,13 +40,13 @@ def train_sequence_ffnn():
     with Timer("Building trainer"):
         # Train for 10 epochs
         batch_scheduler = MiniBatchScheduler(trainset, 128)
-        stopping_criterion = tasks.MaxEpochStopping(3)
 
-        trainer = Trainer(optimizer, batch_scheduler, stopping_criterion=stopping_criterion)
+        trainer = Trainer(optimizer, batch_scheduler)
 
         # Print time for one epoch
         trainer.append_task(tasks.PrintEpochDuration())
         trainer.append_task(tasks.PrintTrainingDuration())
+        trainer.append_task(stopping_criteria.MaxEpochStopping(3))
 
     with Timer("Training"):
         trainer.train()

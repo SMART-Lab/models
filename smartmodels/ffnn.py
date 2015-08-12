@@ -9,7 +9,7 @@ from smartlearner.utils import sharedX
 
 class FFNN(Model):
     def __init__(self,
-                 input_size,
+                 dataset,
                  output_size,
                  hidden_layers,
                  output_act_fct=lambda x: x,
@@ -25,8 +25,9 @@ class FFNN(Model):
         self.use_dropout = sharedX(1.0 if dropout_rate > 0 else 0.0, name='use_dropout?')
         self.use_batch_normalization = use_batch_normalization
         self._trng = T.shared_randomstreams.RandomStreams(seed)
+        self.input = dataset.symb_inputs
 
-        self._build_layers(input_size, hidden_layers, output_size, output_act_fct)
+        self._build_layers(dataset.input_size, hidden_layers, output_size, output_act_fct)
 
     def initialize(self, w_initializer=initer.UniformInitializer(), b_initializer=initer.ZerosInitializer()):
         for w, b in zip(self.tWs, self.tbs):
@@ -45,8 +46,9 @@ class FFNN(Model):
     def use_dropout(self, use_dropout):
         self.use_dropout.set_value(1.0 if use_dropout else 0.0)
 
-    def get_model_output(self, X):
-        last_layer = X
+    @property
+    def output(self):
+        last_layer = self.input
         layer_number = 1
         for w, b, sigma in zip(self.tWs, self.tbs, self.act_fcts):
             if self.use_batch_normalization:
@@ -61,12 +63,12 @@ class FFNN(Model):
 
         return last_layer, {}
 
-    def use_classification(self, X):
-        probs, _ = self.get_model_output(X)
+    def use_classification(self):
+        probs, _ = self.output
         return T.argmax(probs, axis=1, keepdims=True)
 
-    def use_regression(self, X):
-        return self.get_model_output(X)
+    def use_regression(self):
+        return self.output
 
     def save(self, path):
         pass
