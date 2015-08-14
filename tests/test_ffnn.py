@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from blocks.bricks import Tanh, Linear
-from blocks.initialization import IsotropicGaussian, Constant
 from smartlearner import Trainer
 from smartlearner.tasks.stopping_criteria import MaxEpochStopping
 from smartlearner.tasks import tasks
@@ -11,18 +9,9 @@ from smartlearner.update_rules import ConstantLearningRate
 from smartlearner.batch_scheduler import MiniBatchScheduler
 from smartlearner.losses.reconstruction_losses import L2Distance
 
-from smartmodels import ffnn_blocks
+from smartmodels import ffnn
 from projects.timeSeries import synthetic_dataset as dset
-from smartmodels.utils import Timer
-
-class LinearLayer(Linear):
-    def __init__(self, input_dim, output_dim, **kwargs):
-        if 'weights_init' not in kwargs.keys():
-            kwargs['weights_init'] = IsotropicGaussian(0.1)
-        if 'biases_init' not in kwargs.keys():
-            kwargs['biases_init'] = Constant(0)
-        super().__init__(input_dim, output_dim, **kwargs)
-        self.initialize()
+from smartmodels.utils import Timer, FullyConnectedLayer, OutputLayer
 
 
 def train_sequence_ffnn():
@@ -41,12 +30,8 @@ def train_sequence_ffnn():
 
     with Timer("Creating model"):
         output_size = 1
-        blocks_topology = [LinearLayer(input_dim=trainset.input_size, output_dim=100),
-                           Tanh(),
-                           LinearLayer(input_dim=100, output_dim=150),
-                           Tanh(),
-                           LinearLayer(input_dim=150, output_dim=output_size)]
-        model = ffnn_blocks.BlocksFFNN(trainset, blocks_topology)
+        topology = [FullyConnectedLayer(10), FullyConnectedLayer(15), OutputLayer(output_size)]
+        model = ffnn.FFNN(trainset, topology)
 
     with Timer("Building optimizer"):
         optimizer = SGD(loss=L2Distance(model, trainset))
