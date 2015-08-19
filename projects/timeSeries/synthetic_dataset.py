@@ -62,6 +62,8 @@ class TimeSerieGenerator(Generator):
         inputs[0, 0] = starting_value
         inputs[:, 1:] = self._generate_covariates(length)
 
+        initial_covariates = self._covariates.copy()
+
         for t in range(1, length):
             last_val = inputs[t-1, 0]
             delta = 0
@@ -69,13 +71,14 @@ class TimeSerieGenerator(Generator):
             for k, (_, _, sigma) in enumerate(self._covariates):
                 if sigma > 0:
                     self._covariates[k][1] += self.rng.normal(0, sigma)
-                delta += inputs[t-1, k] * self._covariates[k][1]
+                delta += inputs[t-1, k+1] * self._covariates[k][1]
 
             for e in self._effects:
                 delta += e(last_val, t)
 
             inputs[t, 0] = inputs[t-1, 0] + delta
 
+        self._covariates = initial_covariates
         inputs = np.asarray(inputs, dtype=theano.config.floatX)
 
         if generate_target:
