@@ -26,12 +26,12 @@ install:
   - if [[ $TRAVIS_PYTHON_VERSION == '3.3' ]]; then conda create --yes -q -n pyenv mkl python=3.3 numpy scipy nose pyparsing pip flake8 six pep8 pyflakes; fi
   - if [[ $TRAVIS_PYTHON_VERSION == '3.4' ]]; then conda create --yes -q -n pyenv mkl python=3.4 numpy scipy nose pyparsing pip flake8 six pep8 pyflakes; fi
   - source activate pyenv
-  - curl -O https://raw.githubusercontent.com/ASalvail/blocks/master/req-travis-conda.txt
+  - curl -O https://raw.githubusercontent.com/mila-udem/blocks/master/req-travis-conda.txt
   - conda install -q --yes python=$TRAVIS_PYTHON_VERSION mkl --file req-travis-conda.txt
   - pip install theano
   - pip install https://github.com/SMART-Lab/smartlearner/archive/master.zip
-  - pip install -q -r https://raw.githubusercontent.com/ASalvail/blocks/master/req-travis-pip.txt
-  - pip install -q git+git://github.com/ASalvail/blocks.git -r https://raw.githubusercontent.com/ASalvail/blocks/master/requirements.txt
+  - pip install -q -r https://raw.githubusercontent.com/mila-udem/blocks/master/req-travis-pip.txt
+  - pip install -q git+git://github.com/mila-udem/blocks.git -r https://raw.githubusercontent.com/mila-udem/blocks/master/requirements.txt
   - pip install .
 
 # command to run tests, e.g. python setup.py test
