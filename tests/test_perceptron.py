@@ -6,12 +6,11 @@ from smartmodels.utils import load_mnist
 from smartmodels.utils import Timer
 
 from smartlearner import Trainer, tasks
-from smartlearner.tasks import stopping_criteria
-from smartlearner.tasks import views
+from smartlearner import stopping_criteria, views
 from smartlearner.optimizers import SGD
-from smartlearner.update_rules import ConstantLearningRate
+from smartlearner.direction_modifiers import ConstantLearningRate
 from smartlearner.losses.classification_losses import NegativeLogLikelihood as NLL
-from smartlearner.batch_scheduler import MiniBatchScheduler
+from smartlearner.batch_schedulers import MiniBatchScheduler
 
 
 def test_simple_perceptron():
@@ -27,7 +26,7 @@ def test_simple_perceptron():
 
     with Timer("Building optimizer"):
         optimizer = SGD(loss=NLL(model, trainset))
-        optimizer.append_update_rule(ConstantLearningRate(0.0001))
+        optimizer.append_direction_modifier(ConstantLearningRate(0.0001))
 
     with Timer("Building trainer"):
         # Train for 10 epochs
