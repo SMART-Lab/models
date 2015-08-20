@@ -50,11 +50,11 @@ def train_sequence_ffnn():
         trainer.append_task(tasks.PrintTrainingDuration())
 
         # Print mean/stderror of classification errors.
-        l2_error = views.RegressionError(model.use_regression, trainset)
-        trainer.append_task(tasks.Print("Trainset - Regression error: {0:.3f} ± {1:.3f}", l2_error.mean, l2_error.stderror))
+        l2_error = views.ReconstructionError(model.use_regression, trainset)
+        trainer.append_task(tasks.Print("Trainset - Reconstruction error: {0:.3f} ± {1:.3f}", l2_error.mean, l2_error.stderror))
 
-        l2_error = views.RegressionError(model.use_regression, validset)
-        trainer.append_task(tasks.Print("Validset - Regression error: {0:.3f} ± {1:.3f}", l2_error.mean, l2_error.stderror))
+        l2_error = views.ReconstructionError(model.use_regression, validset)
+        trainer.append_task(tasks.Print("Validset - Reconstruction error: {0:.3f} ± {1:.3f}", l2_error.mean, l2_error.stderror))
 
         trainer.append_task(MaxEpochStopping(20000))
         trainer.append_task(EarlyStopping(l2_error.mean, 100))

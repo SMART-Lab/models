@@ -22,7 +22,7 @@ class FFNN(Model):
 
     def get_output(self, inputs):
         if self._graph is None:
-            self._graph = self._build_layers(inputs, self.topology)
+            self._graph = self._build_layers(inputs)
         return self._graph
 
     @property
@@ -42,17 +42,15 @@ class FFNN(Model):
     def load(self, path):
         pass
 
-    def _build_layers(self, input_dataset, topology):
-        last_layer = input_dataset
+    def _build_layers(self, inputs):
+        last_layer = inputs
         last_size = self._input_dim
 
-        for layer in topology:
+        for layer in self.topology:
             activation = Linear(input_dim=last_size, output_dim=layer.size,
                                 weights_init=layer.w_init, biases_init=layer.b_init)
             act_fct = layer.activation_function
 
-            activation.allocate()
-            act_fct.allocate()
             activation.initialize()
             act_fct.initialize()
 
