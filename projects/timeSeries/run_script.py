@@ -45,15 +45,15 @@ def create_trainer(model, optimizer, training_set, validation_set):
         trainer = Trainer(optimizer, batch_scheduler)
 
         # Print time for one epoch
-        trainer.append_task(tasks.PrintEpochDuration())
-        trainer.append_task(tasks.PrintTrainingDuration())
+        #trainer.append_task(tasks.PrintEpochDuration())
+        #trainer.append_task(tasks.PrintTrainingDuration())
 
         # Print mean/stderror of classification errors.
         l2_error = views.RegressionError(model.use_regression, training_set)
-        trainer.append_task(tasks.Print("Trainset - Regression error: {0:.3f} ± {1:.3f}", l2_error.mean, l2_error.stderror))
+        #trainer.append_task(tasks.Print("Trainset - Regression error: {0:.3f} ± {1:.3f}", l2_error.mean, l2_error.stderror))
 
         l2_error = views.RegressionError(model.use_regression, validation_set)
-        trainer.append_task(tasks.Print("Validset - Regression error: {0:.3f} ± {1:.3f}", l2_error.mean, l2_error.stderror))
+        #trainer.append_task(tasks.Print("Validset - Regression error: {0:.3f} ± {1:.3f}", l2_error.mean, l2_error.stderror))
 
         trainer.append_task(MaxEpochStopping(20000))
         trainer.append_task(EarlyStopping(l2_error.mean, 100))
