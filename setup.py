@@ -16,6 +16,6 @@ setup(
     license='LICENSE.txt',
     description='Repository containing all different models we developed in the SMART lab.',
     long_description=open('README.md').read(),
-    install_requires=['theano', 'smartlearner'],
+    install_requires=['theano', 'smartlearner', 'blocks'],
     dependency_links=['https://github.com/SMART-Lab/smartlearner/archive/master.zip#egg=smartlearner-0.0.1']
 )

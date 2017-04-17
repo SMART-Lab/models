@@ -4,12 +4,14 @@ from __future__ import print_function
 import os
 import sys
 import json
+from time import time
+
 import theano
 import theano.sandbox.softsign
 import numpy as np
-from time import time
-
 from smartlearner import Dataset
+from blocks.bricks import Tanh, Logistic, Rectifier, Softplus, Identity, Softmax
+from blocks.initialization import IsotropicGaussian, Constant
 
 DATASETS_ENV = 'DATASETS'
 
@@ -24,7 +26,7 @@ def load_dict_from_json_file(path):
         return json.loads(json_file.read())
 
 
-class Timer():
+class Timer:
     def __init__(self, txt):
         self.txt = txt
 
@@ -35,16 +37,6 @@ class Timer():
 
     def __exit__(self, type, value, tb):
         print("{:.2f} sec.".format(time()-self.start))
-
-
-ACTIVATION_FUNCTIONS = {
-    "sigmoid": theano.tensor.nnet.sigmoid,
-    "hinge": lambda x: theano.tensor.maximum(x, 0.0),
-    "softplus": theano.tensor.nnet.softplus,
-    "tanh": theano.tensor.tanh,
-    "softsign": theano.sandbox.softsign.softsign,
-    "brain": lambda x: theano.tensor.maximum(theano.tensor.log(theano.tensor.maximum(x + 1, 1)), 0.0)
-}
 
 
 def load_mnist():
@@ -88,3 +80,49 @@ def load_mnist():
     testset = Dataset(data['testset_inputs'].astype(theano.config.floatX), data['testset_targets'].astype(theano.config.floatX))
 
     return trainset, validset, testset
+
+
+class FullyConnectedLayer:
+    def __init__(self, size, activation_function='tanh', w_init=IsotropicGaussian(0.1), b_init=Constant(0)):
+        self.size = size
+        self.activation_function = self._choose_act_fct(activation_function)
+        self.w_init = w_init
+        self.b_init = b_init
+
+    def _choose_act_fct(self, act_fct_str):
+        if act_fct_str in ['sigmoid', 'sigm']:
+            act_fct = Logistic()
+        elif act_fct_str == 'relu':
+            act_fct = Rectifier()
+        elif act_fct_str == 'softplus':
+            act_fct = Softplus()
+        elif act_fct_str == 'tanh':
+            act_fct = Tanh()
+        elif act_fct_str == 'softsign':
+            raise NotImplementedError("No softsign bricks exists yet.")
+            # act_fct = theano.sandbox.softsign.softsign
+        elif act_fct_str == 'brain':
+            raise NotImplementedError("No softsign bricks exists yet.")
+            # def brain(x):
+            #     return theano.tensor.maximum(theano.tensor.log(theano.tensor.maximum(x + 1, 1)), 0.0)
+            # act_fct = brain
+        elif act_fct_str == 'linear':
+            act_fct = Identity()
+        elif act_fct_str == 'softmax':
+            act_fct = Softmax()
+        else:
+            raise ValueError(act_fct_str + " is not a valid activation function name.")
+
+        return act_fct
+
+
+class OutputLayer(FullyConnectedLayer):
+    def __init__(self, output_size, activation_function='linear', w_init=IsotropicGaussian(0.1), b_init=Constant(0)):
+        super().__init__(output_size, activation_function, w_init, b_init)
+
+
+class LSTMLayer(FullyConnectedLayer):
+    def __init__(self, size, memory_size, activation_function='tanh',
+                 w_init=IsotropicGaussian(0.1), b_init=Constant(0)):
+        super().__init__(size, activation_function, w_init, b_init)
+        self.memory_size = memory_size
